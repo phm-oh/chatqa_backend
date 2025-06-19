@@ -22,18 +22,26 @@ const questionSchema = new mongoose.Schema({
     }
   },
   
-  phone: {
-    type: String,
-    required: [true, 'กรุณากรอกเบอร์โทรศัพท์'],
-    trim: true,
-    validate: {
-      validator: function(v) {
-        // รองรับเบอร์ไทย เช่น 08x-xxx-xxxx, 02-xxx-xxxx
-        return /^(\+66|0)[0-9]{8,9}$/.test(v.replace(/[-\s]/g, ''));
-      },
-      message: 'รูปแบบเบอร์โทรศัพท์ไม่ถูกต้อง'
-    }
-  },
+phone: {
+  type: String,
+  required: [true, 'กรุณากรอกเบอร์โทรศัพท์'],
+  trim: true,
+  validate: {
+    validator: function(v) {
+      // รองรับเบอร์ไทยทุกแบบ 9-11 หลัก (ยืดหยุ่นมากขึ้น)
+      const cleanedPhone = v.replace(/[-\s\(\)]/g, '');
+      
+      // รูปแบบที่รองรับ:
+      // 08xxxxxxxx (10 หลัก)
+      // 02xxxxxxx (9 หลัก) 
+      // 06xxxxxxxxx (11 หลัก)
+      // +668xxxxxxxx (+66 + 9 หลัก)
+      // +6628xxxxxxx (+66 + 8 หลัก)
+      return /^(\+66[0-9]{8,9}|0[0-9]{8,10})$/.test(cleanedPhone);
+    },
+    message: 'รูปแบบเบอร์โทรศัพท์ไม่ถูกต้อง'
+  }
+},
   
   // หมวดหมู่คำถาม
   category: {
