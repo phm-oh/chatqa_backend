@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Question = require('../models/question');
+const { protect, authorize } = require('../middleware/auth');
 
 // @route   GET /api/questions
 // @desc    Get all questions with optional filters
@@ -149,7 +150,7 @@ router.post('/', async (req, res) => {
 // @route   PUT /api/questions/:id
 // @desc    Update question (for admin)
 // @access  Public (ในการใช้งานจริงควรมี authentication)
-router.put('/:id', async (req, res) => {
+router.put('/:id',  protect, authorize('admin', 'moderator', 'super_admin')    ,async (req, res) => {
   try {
     const { answer, status, showInFAQ, adminNotes, answeredBy } = req.body;
 
@@ -208,7 +209,7 @@ router.put('/:id', async (req, res) => {
 // @route   DELETE /api/questions/:id
 // @desc    Delete question
 // @access  Public (ในการใช้งานจริงควรมี authentication)
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', protect, authorize('super_admin')  , async (req, res) => {
   try {
     const question = await Question.findById(req.params.id);
 

@@ -3,6 +3,7 @@ const express = require('express');
 const { corsMiddleware, handleCorsError } = require('./middleware/cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const adminRoutes = require('./routes/admin');
 require('dotenv').config();
 
 // Import database connection
@@ -58,6 +59,7 @@ app.get('/api/health', (req, res) => {
 // API Routes
 app.use('/api/questions', questionRoutes);
 app.use('/api/faq', faqRoutes);
+app.use('/api/admin', adminRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {
