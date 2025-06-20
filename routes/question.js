@@ -1,7 +1,9 @@
+// ไฟล์: routes/question.js (แก้ไข)
 const express = require('express');
 const router = express.Router();
 const Question = require('../models/question');
 const { protect, authorize } = require('../middleware/auth');
+const emailService = require('../utils/emailService'); // เพิ่มบรรทัดนี้
 
 // @route   GET /api/questions
 // @desc    Get all questions with optional filters
@@ -96,7 +98,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // @route   POST /api/questions
-// @desc    Create new question
+// @desc    Create new question และส่ง email แจ้งเตือน admin
 // @access  Public
 router.post('/', async (req, res) => {
   try {
@@ -121,6 +123,21 @@ router.post('/', async (req, res) => {
 
     const savedQuestion = await newQuestion.save();
 
+    // 🚀 ส่ง email แจ้งเตือนไป admin (ไม่ blocking)
+    console.log('📧 Sending admin notification for new question...');
+    emailService.sendNewQuestionAlert(savedQuestion)
+      .then(result => {
+        if (result.success) {
+          console.log('✅ Admin notification sent:', result.messageId);
+        } else {
+          console.log('⚠️ Admin notification failed (non-blocking):', result.message);
+        }
+      })
+      .catch(error => {
+        console.error('❌ Admin notification error (non-blocking):', error.message);
+      });
+
+    // ส่ง response กลับทันที (ไม่รอ email)
     res.status(201).json({
       success: true,
       message: 'ส่งคำถามเรียบร้อยแล้ว เจ้าหน้าที่จะติดต่อกลับโดยเร็วที่สุด',
@@ -148,9 +165,9 @@ router.post('/', async (req, res) => {
 });
 
 // @route   PUT /api/questions/:id
-// @desc    Update question (for admin)
-// @access  Public (ในการใช้งานจริงควรมี authentication)
-router.put('/:id',  protect, authorize('admin', 'moderator', 'super_admin')    ,async (req, res) => {
+// @desc    Update question และส่ง email แจ้งเตือนผู้ถาม (ถ้ามีการตอบ)
+// @access  Private (admin, moderator, super_admin)
+router.put('/:id', protect, authorize('admin', 'moderator', 'super_admin'), async (req, res) => {
   try {
     const { answer, status, showInFAQ, adminNotes, answeredBy } = req.body;
 
@@ -163,6 +180,10 @@ router.put('/:id',  protect, authorize('admin', 'moderator', 'super_admin')    ,
       });
     }
 
+    // เก็บสถานะเก่าไว้เพื่อเช็คว่ามีการเปลี่ยน status หรือไม่
+    const oldStatus = question.status;
+    const hadAnswer = question.answer && question.answer.trim() !== '';
+
     // Update fields
     if (answer !== undefined) question.answer = answer.trim();
     if (status !== undefined) question.status = status;
@@ -171,6 +192,32 @@ router.put('/:id',  protect, authorize('admin', 'moderator', 'super_admin')    ,
     if (answeredBy !== undefined) question.answeredBy = answeredBy.trim();
 
     const updatedQuestion = await question.save();
+
+    // 🚀 ตรวจสอบว่าต้องส่ง email แจ้งเตือนผู้ถามหรือไม่
+    const shouldNotifyUser = (
+      // มีการเพิ่มคำตอบใหม่ หรือ
+      (answer && answer.trim() !== '' && !hadAnswer) ||
+      // status เปลี่ยนเป็น 'ตอบแล้ว' หรือ 'เผยแพร่' และมีคำตอบแล้ว
+      ((status === 'ตอบแล้ว' || status === 'เผยแพร่') && 
+       oldStatus === 'รอตอบ' && 
+       updatedQuestion.answer && 
+       updatedQuestion.answer.trim() !== '')
+    );
+
+    if (shouldNotifyUser) {
+      console.log('📧 Sending user notification for answered question...');
+      emailService.sendQuestionAnsweredNotification(updatedQuestion)
+        .then(result => {
+          if (result.success) {
+            console.log('✅ User notification sent:', result.messageId);
+          } else {
+            console.log('⚠️ User notification failed (non-blocking):', result.message);
+          }
+        })
+        .catch(error => {
+          console.error('❌ User notification error (non-blocking):', error.message);
+        });
+    }
 
     res.status(200).json({
       success: true,
@@ -208,8 +255,8 @@ router.put('/:id',  protect, authorize('admin', 'moderator', 'super_admin')    ,
 
 // @route   DELETE /api/questions/:id
 // @desc    Delete question
-// @access  Public (ในการใช้งานจริงควรมี authentication)
-router.delete('/:id', protect, authorize('super_admin')  , async (req, res) => {
+// @access  Private (super_admin only)
+router.delete('/:id', protect, authorize('super_admin'), async (req, res) => {
   try {
     const question = await Question.findById(req.params.id);
 
