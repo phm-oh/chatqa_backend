@@ -3,6 +3,7 @@ FROM node:18-alpine
 RUN apk add --no-cache curl
 
 WORKDIR /app
+ENV PORT=5555
 
 COPY package*.json ./
 RUN npm ci --only=production --silent
@@ -10,10 +11,10 @@ RUN npm ci --only=production --silent
 COPY . .
 RUN mkdir -p logs uploads
 
-EXPOSE 5000
+EXPOSE $PORT
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:5000/api/health || exit 1
+  CMD curl -f http://localhost:$PORT/api/health || exit 1
 
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001 && \
