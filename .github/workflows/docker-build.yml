@@ -1,7 +1,5 @@
 # Path: backend/.github/workflows/docker-build.yml
-# ไฟล์: docker-build.yml
-
-name: Build and Push Backend Docker Image
+name: Build and Auto Deploy Backend
 
 on:
   push:
@@ -14,13 +12,14 @@ env:
   IMAGE_NAME: phm-oh/chatqa_backend
 
 jobs:
-  build-and-push:
+  build-and-deploy:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
 
     steps:
+    # 1. Build และ Push Image
     - name: Checkout repository
       uses: actions/checkout@v4
 
@@ -50,6 +49,45 @@ jobs:
         push: true
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
+
+    # 2. ⭐ Auto Deploy ไปยัง Production Server (เฉพาะ main branch)
+    - name: Deploy to Production Server
+      if: github.ref == 'refs/heads/main'
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.PROD_HOST }}
+        username: ${{ secrets.PROD_USER }}
+        key: ${{ secrets.PROD_SSH_KEY }}
+        script: |
+          echo "🔄 Starting Backend Deployment..."
+          
+          # Update chatqa-deploy repo
+          cd /home/oem/chatqa-deploy
+          echo "📡 Syncing deployment config from GitHub..."
+          git pull origin main
+          
+          # Deploy เฉพาะ backend
+          echo "🔽 Pulling latest backend image..."
+          docker-compose pull backend
+          
+          echo "🚀 Restarting backend service..."
+          docker-compose up -d backend
+          
+          echo "✅ Backend deployed successfully!"
+          echo "📊 Container Status:"
+          docker ps --filter "name=chatqa-backend" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+          
+          echo "🌐 API Health Check: http://49.231.145.165:5555/api/health"
+
+    # 3. Deployment Status
+    - name: Deployment Status
+      if: always() && github.ref == 'refs/heads/main'
+      run: |
+        if [ ${{ job.status }} == 'success' ]; then
+          echo "✅ Backend deployment completed successfully!"
+        else
+          echo "❌ Backend deployment failed!"
+        fi
 
     - name: Image digest
       run: echo ${{ steps.build.outputs.digest }}
