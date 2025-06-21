@@ -99,11 +99,21 @@ jobs:
           docker-compose -f docker-compose.prod.yml pull backend
           
           echo "🚀 Starting backend service..."
-          docker-compose -f docker-compose.prod.yml up -d backend --force-recreate
+          docker-compose -f docker-compose.prod.yml up -d --force-recreate backend
           
           # รอให้ backend พร้อม
           echo "⏳ รอให้ backend พร้อม..."
-          sleep 15
+          sleep 20
+          
+          # ตรวจสอบ backend container status
+          echo "🔍 ตรวจสอบ backend container..."
+          docker ps | grep chatqa-backend || echo "⚠️ Backend container ไม่พบ!"
+          
+          # ดู logs ถ้า backend ไม่ขึ้น
+          if ! docker ps | grep -q chatqa-backend; then
+            echo "📋 Backend logs:"
+            docker logs chatqa-backend 2>/dev/null || echo "ไม่สามารถดู logs ได้"
+          fi
           
           echo "✅ Safe backend deployment completed!"
           echo "📊 Container Status:"
