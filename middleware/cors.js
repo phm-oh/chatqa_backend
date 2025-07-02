@@ -1,3 +1,5 @@
+// backend/middleware/cors.js - เพิ่ม production origins
+
 const cors = require('cors');
 
 // Define allowed origins based on environment
@@ -14,7 +16,14 @@ const getAllowedOrigins = () => {
     );
   }
   
-  // Production origins
+  // ⭐ Production origins - เพิ่มส่วนนี้
+  origins.push(
+    'http://49.231.145.165',      // Production server IP
+    'http://49.231.145.165:80',   // Production server with port
+    'https://yourapp.vercel.app'  // Vercel domain (แก้ตาม domain จริง)
+  );
+  
+  // Frontend URL from environment
   if (process.env.FRONTEND_URL) {
     origins.push(process.env.FRONTEND_URL);
   }

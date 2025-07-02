@@ -14,7 +14,7 @@ const questionRoutes = require('./routes/question');
 const faqRoutes = require('./routes/faq');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5555;
 
 // Connect to MongoDB
 connectDB();
@@ -84,6 +84,7 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on http://127.0.0.1:${PORT}`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`📱 API Health Check: http://127.0.0.1:${PORT}/api/health`);
   console.log(`📱 API Health Check: http://127.0.0.1:${PORT}/api/health`);
 });
 
