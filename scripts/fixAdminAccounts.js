@@ -44,9 +44,9 @@ const fixAdminAccounts = async () => {
     // 2. สร้าง Super Admin ใหม่ที่ถูกต้อง
     const adminAccounts = [
       {
-        username: 'admin',
-        email: 'admin@udvc.ac.th',
-        password: 'admin123',  // รหัสผ่านใหม่ที่จำง่าย
+        username: 'oh',
+        email: 'oh@udvc.ac.th',
+        password: '@Chat123',  // รหัสผ่านใหม่ที่จำง่าย
         fullName: 'ผู้ดูแลระบบหลัก',
         role: 'super_admin'
       },
