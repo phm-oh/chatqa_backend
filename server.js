@@ -1,5 +1,5 @@
 const express = require('express');
-// const cors = require('cors');
+const cors = require('cors');
 const { corsMiddleware, handleCorsError } = require('./middleware/cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
